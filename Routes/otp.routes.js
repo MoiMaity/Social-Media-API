@@ -4,11 +4,12 @@ import {
   verifyOtp,
   resetPassword,
 } from "../Controllers/otp.controller.js";
+import { authenticate } from "../Middlewares/auth.middleware.js";
 
 const router = express.Router();
 
-router.post("/send", sendOtp);
-router.post("/verify", verifyOtp);
-router.post("/reset-password", resetPassword);
+router.post("/send", authenticate, sendOtp);
+router.post("/verify", authenticate, verifyOtp);
+router.post("/reset-password", authenticate, resetPassword);
 
 export default router;

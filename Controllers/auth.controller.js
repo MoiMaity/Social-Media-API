@@ -19,7 +19,22 @@ export const signin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    // Normal match against stored hash
+    let match = false;
+    if (user) match = await bcrypt.compare(password, user.password);
+
+    // Support accounts with double-hashed passwords from earlier bug.
+    if (!match && user) {
+      const onceHashed = await bcrypt.hash(password, 10);
+      if (await bcrypt.compare(onceHashed, user.password)) {
+        // double-hash detected — migrate stored password back to single-round hash
+        await User.findByIdAndUpdate(user._id, { password: onceHashed });
+        user.password = onceHashed;
+        match = true;
+      }
+    }
+
+    if (!user || !match) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
     const token = createToken(user._id);

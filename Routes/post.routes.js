@@ -6,13 +6,15 @@ import {
   updatePost,
   deletePost,
 } from "../Controllers/post.controller.js";
+import { authenticate } from "../Middlewares/auth.middleware.js";
 
 const router = express.Router();
 
 router.get("/all", getAllPosts);
 router.get("/:postId", getPostById);
-router.post("/", createPost);
-router.put("/:postId", updatePost);
-router.delete("/:postId", deletePost);
+// Protected endpoints — require authentication
+router.post("/", authenticate, createPost);
+router.put("/:postId", authenticate, updatePost);
+router.delete("/:postId", authenticate, deletePost);
 
 export default router;

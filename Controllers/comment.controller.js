@@ -3,6 +3,8 @@ import Post from "../Models/post.model.js";
 
 export const addComment = async (req, res) => {
   try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const { text } = req.body;
     const comment = await Comment.create({
       text,
@@ -22,6 +24,8 @@ export const addComment = async (req, res) => {
 
 export const updateComment = async (req, res) => {
   try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const comment = await Comment.findById(req.params.commentId);
     if (!comment)
       return res
@@ -41,6 +45,8 @@ export const updateComment = async (req, res) => {
 
 export const deleteComment = async (req, res) => {
   try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const comment = await Comment.findById(req.params.commentId);
     if (!comment)
       return res
@@ -53,7 +59,8 @@ export const deleteComment = async (req, res) => {
     await Post.findByIdAndUpdate(comment.post, {
       $pull: { comments: comment._id },
     });
-    await comment.remove();
+    // Use a safe delete API instead of the deprecated Document.remove()
+    await Comment.findByIdAndDelete(comment._id);
     res.json({ success: true, message: "Comment deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

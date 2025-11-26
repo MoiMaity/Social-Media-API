@@ -4,6 +4,8 @@ import User from "../Models/user.model.js";
 export const createPost = async (req, res) => {
   try {
     const { caption, imageUrl } = req.body;
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const userId = req.user._id;
 
     const newPost = new Post({ caption, imageUrl, user: userId });
@@ -47,6 +49,8 @@ export const getPostById = async (req, res) => {
 
 export const updatePost = async (req, res) => {
   try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const { caption, imageUrl } = req.body;
     const post = await Post.findById(req.params.postId);
 
@@ -69,6 +73,8 @@ export const updatePost = async (req, res) => {
 
 export const deletePost = async (req, res) => {
   try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     const post = await Post.findById(req.params.postId);
     if (!post)
       return res
@@ -78,7 +84,8 @@ export const deletePost = async (req, res) => {
     if (post.user.toString() !== req.user._id.toString())
       return res.status(403).json({ success: false, message: "Unauthorized" });
 
-    await post.remove();
+    // Use a safe delete API instead of the deprecated Document.remove()
+    await Post.findByIdAndDelete(req.params.postId);
     res.json({ success: true, message: "Post deleted" });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

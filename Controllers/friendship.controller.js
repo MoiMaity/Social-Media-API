@@ -10,11 +10,11 @@ export const toggleFriendRequest = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
 
-    const hasRequested = receiver.friendRequests.includes(sender._id);
+    const hasRequested = receiver.pendingRequests.includes(sender._id);
     if (hasRequested) {
-      receiver.friendRequests.pull(sender._id);
+      receiver.pendingRequests.pull(sender._id);
     } else {
-      receiver.friendRequests.push(sender._id);
+      receiver.pendingRequests.push(sender._id);
     }
 
     await receiver.save();
@@ -38,12 +38,12 @@ export const respondToFriendRequest = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not found" });
 
-    if (!receiver.friendRequests.includes(sender._id))
+    if (!receiver.pendingRequests.includes(sender._id))
       return res
         .status(400)
         .json({ success: false, message: "No such request" });
 
-    receiver.friendRequests.pull(sender._id);
+    receiver.pendingRequests.pull(sender._id);
 
     if (action === "accept") {
       receiver.friends.push(sender._id);
@@ -64,10 +64,13 @@ export const respondToFriendRequest = async (req, res) => {
 
 export const getFriends = async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId).populate(
-      "friends",
-      "name email"
-    );
+    // If a userId param is provided (viewing another user's friends) use it,
+    // otherwise return the authenticated user's friends (req.user._id)
+    const id = req.params.userId || req.user?._id;
+    if (!id)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+
+    const user = await User.findById(id).populate("friends", "name email");
     if (!user)
       return res
         .status(404)
@@ -82,10 +85,10 @@ export const getFriends = async (req, res) => {
 export const getPendingRequests = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate(
-      "friendRequests",
+      "pendingRequests",
       "name email"
     );
-    res.json({ success: true, requests: user.friendRequests });
+    res.json({ success: true, requests: user.pendingRequests });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
